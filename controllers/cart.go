@@ -53,6 +53,7 @@ func (app *Application) AddToCart() gin.HandlerFunc {
 		var ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 
 		defer cancel()
+
 		err = database.AddProductToCart(ctx, app.prodCollection, app.userCollection, productID, userQueryID)
 		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, err)
@@ -61,18 +62,110 @@ func (app *Application) AddToCart() gin.HandlerFunc {
 	}
 }
 
-func RemoveItem() gin.HandlerFunc {
+func (app *Application) RemoveItem() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		productQueryID := c.Query("id")
+		if productQueryID == "" {
+			log.Println("Product ID is empty")
 
+			_ = c.AbortWithError(http.StatusBadRequest, errors.New("Product ID is empty"))
+			return
+		}
+
+		userQueryID := c.Query("userID")
+		if userQueryID == "" {
+			log.Println("User ID is empty")
+
+			_ = c.AbortWithError(http.StatusBadRequest, errors.New("User ID is empty"))
+			return
+		}
+
+		productID, err := primitive.ObjectIDFromHex(productQueryID)
+
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+
+		defer cancel()
+
+		err = database.RemoveCartItem(ctx, app.prodCollection, app.userCollection, productID, userQueryID)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+			return
+		}
+
+		c.IndentedJSON(http.StatusOK, "Successfully removed item from cart")
+	}
 }
 
 func GetItemFromCart() gin.HandlerFunc {
 
 }
 
-func BuyFromCart() gin.HandlerFunc {
+func (app *Application) BuyFromCart() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userQueryID := c.Query("id")
 
+		if userQueryID == "" {
+			log.Panic("User ID is empty")
+			_ = c.AbortWithError(http.StatusBadRequest, errors.New("User ID is empty"))
+		}
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+
+		defer cancel()
+
+		err := database.BuyItemFromCart(ctx, app.userCollection, userQueryID)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+			return
+		}
+		c.IndentedJSON(http.StatusOK, "Successfully placed the order")
+	}
 }
 
-func InstantBuy() gin.HandlerFunc {
+func (app *Application) InstantBuy() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		productQueryID := c.Query("id")
+		if productQueryID == "" {
+			log.Println("Product ID is empty")
 
+			_ = c.AbortWithError(http.StatusBadRequest, errors.New("Product ID is empty"))
+			return
+		}
+
+		userQueryID := c.Query("userID")
+		if userQueryID == "" {
+			log.Println("User ID is empty")
+
+			_ = c.AbortWithError(http.StatusBadRequest, errors.New("User ID is empty"))
+			return
+		}
+
+		productID, err := primitive.ObjectIDFromHex(productQueryID)
+
+		if err != nil {
+			log.Println(err)
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+
+		defer cancel()
+
+		err = database.InstantProductBuy(ctx, app.prodCollection, app.userCollection, productID, userQueryID)
+
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, err)
+		}
+
+		c.IndentedJSON(http.StatusOK, "Successfully placed the order")
+	}
 }
